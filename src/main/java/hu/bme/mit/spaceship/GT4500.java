@@ -1,8 +1,5 @@
 package hu.bme.mit.spaceship;
 
-import java.util.List;
-import java.util.function.Function;
-
 /**
 * A simple spaceship with two proton torpedo stores and four lasers
 */
@@ -14,9 +11,9 @@ public class GT4500 implements SpaceShip {
   private boolean wasPrimaryFiredLast = false;
 
   private enum FiringResult {
-    Primary,
-    Secondary,
-    Empty
+    PRIMARY,
+    SECONDARY,
+    EMPTY
   }
 
   public GT4500() {
@@ -44,43 +41,35 @@ public class GT4500 implements SpaceShip {
   */
   @Override
   public boolean fireTorpedo(FiringMode firingMode) {
-
-    boolean firingSuccess = false;
-
-    switch (firingMode) {
-      case SINGLE:
-        firingSuccess = fireSingle();
-        break;
-
-      case ALL:
-        firingSuccess = fireMultiple();
-        break;
+    if (firingMode == FiringMode.SINGLE) {
+      return fireSingle();
+    } else if(firingMode == FiringMode.ALL) {
+      return fireMultiple();
     }
-
-    return firingSuccess;
+    return false;
   }
 
   private FiringResult fireSingleWithFallback(TorpedoStore primary, TorpedoStore fallback,
                                               FiringResult primaryResult, FiringResult fallbackResult) {
     if (!primary.isEmpty()) {
-      return primary.fire(1) ? primaryResult : FiringResult.Empty;
+      return primary.fire(1) ? primaryResult : FiringResult.EMPTY;
     } else if (!fallback.isEmpty()) {
-      return fallback.fire(1) ? fallbackResult : FiringResult.Empty;
+      return fallback.fire(1) ? fallbackResult : FiringResult.EMPTY;
     }
-    return FiringResult.Empty;
+    return FiringResult.EMPTY;
   }
 
   private boolean fireSingle() {
     FiringResult result;
     if (wasPrimaryFiredLast) {
       result = fireSingleWithFallback(secondaryTorpedoStore, primaryTorpedoStore,
-                                      FiringResult.Secondary, FiringResult.Primary);
+                                      FiringResult.SECONDARY, FiringResult.PRIMARY);
     } else {
       result = fireSingleWithFallback(primaryTorpedoStore, secondaryTorpedoStore,
-                                      FiringResult.Primary, FiringResult.Secondary);
+                                      FiringResult.PRIMARY, FiringResult.SECONDARY);
     }
-    wasPrimaryFiredLast = result == FiringResult.Primary;
-    return result != FiringResult.Empty;
+    wasPrimaryFiredLast = result == FiringResult.PRIMARY;
+    return result != FiringResult.EMPTY;
   }
 
   private boolean fireMultiple() {
