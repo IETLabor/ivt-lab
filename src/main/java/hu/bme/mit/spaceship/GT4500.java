@@ -1,5 +1,8 @@
 package hu.bme.mit.spaceship;
 
+import java.util.List;
+import java.util.function.Function;
+
 /**
 * A simple spaceship with two proton torpedo stores and four lasers
 */
@@ -9,6 +12,12 @@ public class GT4500 implements SpaceShip {
   private TorpedoStore secondaryTorpedoStore;
 
   private boolean wasPrimaryFiredLast = false;
+
+  private enum FiringResult {
+    Primary,
+    Secondary,
+    Empty
+  }
 
   public GT4500() {
     this.primaryTorpedoStore = new TorpedoStore(10);
@@ -40,57 +49,50 @@ public class GT4500 implements SpaceShip {
 
     switch (firingMode) {
       case SINGLE:
-        if (wasPrimaryFiredLast) {
-          // try to fire the secondary first
-          if (! secondaryTorpedoStore.isEmpty()) {
-            firingSuccess = secondaryTorpedoStore.fire(1);
-            wasPrimaryFiredLast = false;
-          }
-          else {
-            // although primary was fired last time, but the secondary is empty
-            // thus try to fire primary again
-            if (! primaryTorpedoStore.isEmpty()) {
-              firingSuccess = primaryTorpedoStore.fire(1);
-              wasPrimaryFiredLast = true;
-            }
-
-            // if both of the stores are empty, nothing can be done, return failure
-          }
-        }
-        else {
-          // try to fire the primary first
-          if (! primaryTorpedoStore.isEmpty()) {
-            firingSuccess = primaryTorpedoStore.fire(1);
-            wasPrimaryFiredLast = true;
-          }
-          else {
-            // although secondary was fired last time, but primary is empty
-            // thus try to fire secondary again
-            if (! secondaryTorpedoStore.isEmpty()) {
-              firingSuccess = secondaryTorpedoStore.fire(1);
-              wasPrimaryFiredLast = false;
-            }
-
-            // if both of the stores are empty, nothing can be done, return failure
-          }
-        }
+        firingSuccess = fireSingle();
         break;
 
       case ALL:
-        // try to fire both of the torpedo stores
-        if (!primaryTorpedoStore.isEmpty()) {
-          primaryTorpedoStore.fire(1);
-          firingSuccess = true;
-        }
-        if (!secondaryTorpedoStore.isEmpty()) {
-          secondaryTorpedoStore.fire(1);
-          firingSuccess = true;
-        }
-
+        firingSuccess = fireMultiple();
         break;
     }
 
     return firingSuccess;
   }
 
+  private FiringResult fireSingleWithFallback(TorpedoStore primary, TorpedoStore fallback,
+                                              FiringResult primaryResult, FiringResult fallbackResult) {
+    if (!primary.isEmpty()) {
+      return primary.fire(1) ? primaryResult : FiringResult.Empty;
+    } else if (!fallback.isEmpty()) {
+      return fallback.fire(1) ? fallbackResult : FiringResult.Empty;
+    }
+    return FiringResult.Empty;
+  }
+
+  private boolean fireSingle() {
+    FiringResult result;
+    if (wasPrimaryFiredLast) {
+      result = fireSingleWithFallback(secondaryTorpedoStore, primaryTorpedoStore,
+                                      FiringResult.Secondary, FiringResult.Primary);
+    } else {
+      result = fireSingleWithFallback(primaryTorpedoStore, secondaryTorpedoStore,
+                                      FiringResult.Primary, FiringResult.Secondary);
+    }
+    wasPrimaryFiredLast = result == FiringResult.Primary;
+    return result != FiringResult.Empty;
+  }
+
+  private boolean fireMultiple() {
+    // try to fire both of the torpedo stores
+    if (!primaryTorpedoStore.isEmpty()) {
+      primaryTorpedoStore.fire(1);
+      return true;
+    }
+    if (!secondaryTorpedoStore.isEmpty()) {
+      secondaryTorpedoStore.fire(1);
+      return true;
+    }
+    return false;
+  }
 }
